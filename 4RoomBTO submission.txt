@@ -1,0 +1,145 @@
+# 4-Room BTO Floor Plan: Data File 
+
+==============================================================================
+# Made this text file with help from AI referencing an actual floor plan  
+
+#global scale setting
+SCALE,1.0
+
+# ------------------------------------------------------------------------------
+# 1. BEDROOM 2 & BEDROOM 3 (Top Wing, Y: 50 to 190)
+# ------------------------------------------------------------------------------
+# Bedroom 2 Top Window & Structural Piers (X: -140 to 0, Y = 190)
+STRUCTURAL_WALL,-140,190,20,horizontal
+SLIDING_WINDOW,-120,190,100,horizontal
+STRUCTURAL_WALL,-20,190,20,horizontal
+
+# Bedroom 2 Left Boundary (Wall separating from Main Bedroom, Y: 50 to 190)
+NON_STRUCTURAL_WALL,-140,50,140,vertical
+
+# Partition Wall dividing Bedroom 2 and Bedroom 3 (X = 0, Y: 50 to 190)
+NON_STRUCTURAL_WALL,0,50,140,vertical
+
+# Bedroom 2 Bottom Wall & Doorway (Corridor Access along Y = 50)
+NON_STRUCTURAL_WALL,-140,50,95,horizontal
+SWING_DOOR,-45,50,40,top-right
+
+# Bedroom 3 Top Window & Structural Piers (X: 0 to 140, Y = 190)
+STRUCTURAL_WALL,0,190,20,horizontal
+SLIDING_WINDOW,20,190,100,horizontal
+STRUCTURAL_WALL,120,190,20,horizontal
+
+# Bedroom 3 Right Wall facing Living/Dining Room (X = 140, Y: 50 to 190)
+STRUCTURAL_WALL,140,50,140,vertical
+
+# Bedroom 3 Bottom Wall & Doorway (Corridor Access along Y = 50)
+SWING_DOOR,45,50,40,top-left
+NON_STRUCTURAL_WALL,45,50,95,horizontal
+
+# ------------------------------------------------------------------------------
+# 2. MAIN BEDROOM SUITE (Top-Left, X: -320 to -140, Y: 0 to 190)
+# ------------------------------------------------------------------------------
+# Top Facade & Sliding Window (X: -320 to -140, Y = 190)
+STRUCTURAL_WALL,-320,190,30,horizontal
+SLIDING_WINDOW,-290,190,120,horizontal
+STRUCTURAL_WALL,-170,190,30,horizontal
+
+# Left External Gable-End Wall (X = -320, Y: 0 to 190)
+GABLE_END_WALL,-320,0,190,vertical
+
+# Master Bedroom Corridor Entrance Door (End of hallway at X = -140, Y = 0 to 50)
+# Hinged near bathroom top corner, swinging into master suite vestibule
+SWING_DOOR,-140,0,45,top-left
+
+# ------------------------------------------------------------------------------
+# 3. CENTRAL CORRIDOR / PASSAGEWAY (Between Y = 0 and Y = 50)
+# ------------------------------------------------------------------------------
+# Corridor opens to Living/Dining room on East (X = 140)
+# Corridor width = 50 units (~1000 mm standard circulation width)
+# North wall formed by Bedroom 2 & 3 bottoms (Y = 50)
+# South wall formed by Bath 1 & Bath 2 tops (Y = 0)
+
+# ------------------------------------------------------------------------------
+# 4. BATHROOM CORE (Master Bath 1 & Common Bath 2, Y: -110 to 0)
+# ------------------------------------------------------------------------------
+# Exterior Corner Setback Step below Master Bedroom (X: -320 to -260, Y = 0)
+STRUCTURAL_WALL,-320,0,60,horizontal
+
+# Master Bath 1 Outer Left Wall (X = -260, Y: -110 to 0)
+STRUCTURAL_WALL,-260,-110,110,vertical
+
+# Master Bath 1 Bottom Wall (X: -260 to -150, Y = -110)
+STRUCTURAL_WALL,-260,-110,110,horizontal
+
+# Master Bath 1 Top Wall & Door (Swings into Bath 1 from Master suite vestibule)
+NON_STRUCTURAL_WALL,-260,0,30,horizontal
+SWING_DOOR,-230,0,40,bottom-right
+NON_STRUCTURAL_WALL,-190,0,40,horizontal
+
+# Dividing Wall between Bath 1 and Bath 2 (X = -150, Y: -110 to 0)
+STRUCTURAL_WALL,-150,-110,110,vertical
+
+# Common Bath 2 Top Wall & Door (Direct corridor access at Y = 0, swinging into Bath 2)
+NON_STRUCTURAL_WALL,-150,0,20,horizontal
+SWING_DOOR,-130,0,40,bottom-right
+NON_STRUCTURAL_WALL,-90,0,50,horizontal
+
+# Common Bath 2 Right Wall (X = -40, Y: -110 to 0)
+STRUCTURAL_WALL,-40,-110,110,vertical
+
+# Common Bath 2 Bottom Wall (X: -150 to -40, Y = -110)
+STRUCTURAL_WALL,-150,-110,110,horizontal
+
+# ------------------------------------------------------------------------------
+# 5. AIR-CON LEDGE & SERVICE YARD
+# ------------------------------------------------------------------------------
+# Air-Con Ledge (Below Bath 1, X: -260 to -180, Y: -150 to -110)
+NON_STRUCTURAL_WALL,-260,-150,80,horizontal
+NON_STRUCTURAL_WALL,-260,-150,40,vertical
+NON_STRUCTURAL_WALL,-180,-150,40,vertical
+
+# Service Yard (Below Common Bath 2, X: -150 to -40, Y: -220 to -110)
+NON_STRUCTURAL_WALL,-150,-220,110,vertical
+STRUCTURAL_WALL,-40,-220,110,vertical
+STANDARD_WINDOW,-150,-220,110,horizontal
+
+# ------------------------------------------------------------------------------
+# 6. KITCHEN (Bottom-Center, X: -40 to 140, Y: -220 to -110)
+# ------------------------------------------------------------------------------
+# Continuous Bottom Building Line (Y = -220)
+STRUCTURAL_WALL,-40,-220,180,horizontal
+
+# Right Kitchen Structural Wall & Column
+STRUCTURAL_WALL,140,-220,110,vertical
+
+# Kitchen Upper Boundary facing Corridor / Living Room
+NON_STRUCTURAL_WALL,-40,-110,180,horizontal
+
+# ------------------------------------------------------------------------------
+# 7. LIVING / DINING & EXTERIOR BALCONY FACADE
+# ------------------------------------------------------------------------------
+# Upper Window Setback / Balcony Run (X: 140 to 300, Y = 50)
+STRUCTURAL_WALL,140,50,30,horizontal
+SLIDING_WINDOW,170,50,110,horizontal
+STRUCTURAL_WALL,280,50,20,horizontal
+
+# Far Right Living Room External Wall (X = 300, Y: -90 to 50)
+STRUCTURAL_WALL,300,-90,140,vertical
+STANDARD_WINDOW,300,-50,60,vertical
+
+# ------------------------------------------------------------------------------
+# 8. HOUSEHOLD SHELTER & MAIN ENTRANCE
+# ------------------------------------------------------------------------------
+# Household Shelter Structural Box (X: 220 to 300, Y: -190 to -90)
+STRUCTURAL_WALL,220,-90,80,horizontal
+STRUCTURAL_WALL,300,-190,100,vertical
+STRUCTURAL_WALL,220,-190,80,horizontal
+STRUCTURAL_WALL,220,-190,40,vertical
+
+# Shelter Blast Door (Hinged on shelter front, swinging into foyer)
+SWING_DOOR,220,-150,60,top-left
+
+# Main Entrance Doorway (Y = -190)
+NON_STRUCTURAL_WALL,140,-190,20,horizontal
+SWING_DOOR,160,-190,45,top-right
+STRUCTURAL_WALL,205,-190,15,horizontal
