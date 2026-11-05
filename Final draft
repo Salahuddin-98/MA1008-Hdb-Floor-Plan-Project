@@ -1,0 +1,954 @@
+import turtle
+
+# ==========================================
+# GLOBAL CONFIGURATION & STATE
+# ==========================================
+PLAN_SCALE = 0.5
+ORIGIN_X = 0
+ORIGIN_Y = -60
+
+# Stores all placed elements:
+# Format: [TYPE, param1, param2, ...]
+PLAN_ELEMENTS = []
+
+
+# ==========================================
+# 1. COORDINATE CONVERSION & PEN HELPERS
+# ==========================================
+
+def go_to(x, y):
+    """Moves turtle to (x, y) without drawing."""
+    turtle.penup()
+    turtle.goto(x, y)
+    turtle.pendown()
+
+
+def to_screen_x(user_x):
+    """Converts user X coordinate to scaled screen X coordinate."""
+    return ORIGIN_X + (user_x * PLAN_SCALE)
+
+
+def to_screen_y(user_y):
+    """Converts user Y coordinate to scaled screen Y coordinate."""
+    return ORIGIN_Y + (user_y * PLAN_SCALE)
+
+
+def to_screen_dim(dim):
+    """Scales a dimension by the active plan scale factor."""
+    return dim * PLAN_SCALE
+
+
+# ==========================================
+# 2. CANVAS FRAME & BOUNDING BOX
+# ==========================================
+
+def draw_perimeter_box():
+    """Draws the floor plan canvas bounding box below the toolbar."""
+    go_to(-475, -340)
+    turtle.pencolor("#708090")  # Slate gray
+    turtle.pensize(2)
+    turtle.setheading(0)
+    for _ in range(2):
+        turtle.forward(950)
+        turtle.left(90)
+        turtle.forward(520)
+        turtle.left(90)
+
+    # Scale status display badge
+    go_to(340, 162)
+    turtle.pencolor("#555555")
+    turtle.write(f"Scale: {PLAN_SCALE:.1f}x", font=("Arial", 10, "bold"))
+    turtle.pencolor("black")
+    turtle.pensize(1)
+
+
+def render_canvas_frame():
+    """Renders the bounding canvas border."""
+    turtle.tracer(0)
+    draw_perimeter_box()
+    turtle.tracer(1)
+
+
+# ==========================================
+# 3. WALL DRAWING FUNCTIONS
+# ==========================================
+
+def draw_non_structural_wall(x, y, length, orientation='horizontal', thickness=6):
+    """Draws a non-structural wall (pair of parallel thin lines)."""
+    sx = to_screen_x(x)
+    sy = to_screen_y(y)
+    s_len = to_screen_dim(length)
+    s_thick = to_screen_dim(thickness)
+
+    if orientation == 'horizontal':
+        go_to(sx, sy + s_thick / 2)
+        turtle.setheading(0)
+        turtle.forward(s_len)
+        go_to(sx, sy - s_thick / 2)
+        turtle.setheading(0)
+        turtle.forward(s_len)
+    elif orientation == 'vertical':
+        go_to(sx + s_thick / 2, sy)
+        turtle.setheading(90)
+        turtle.forward(s_len)
+        go_to(sx - s_thick / 2, sy)
+        turtle.setheading(90)
+        turtle.forward(s_len)
+
+
+def draw_structural_wall(x, y, length, thickness=16, orientation='horizontal'):
+    #Draws a structural wall (solid black filled rectangular bar)
+    sx = to_screen_x(x)
+    sy = to_screen_y(y)
+    s_len = to_screen_dim(length)
+    s_thick = to_screen_dim(thickness)
+
+    go_to(sx, sy)
+    turtle.fillcolor("black")
+    turtle.begin_fill()
+    if orientation == 'horizontal':
+        turtle.setheading(0)
+        for _ in range(2):
+            turtle.forward(s_len)
+            turtle.left(90)
+            turtle.forward(s_thick)
+            turtle.left(90)
+    elif orientation == 'vertical':
+        turtle.setheading(90)
+        for _ in range(2):
+            turtle.forward(s_len)
+            turtle.right(90)
+            turtle.forward(s_thick)
+            turtle.right(90)
+    turtle.end_fill()
+
+
+def draw_gable_end_wall(x, y, length, thickness=20, orientation='horizontal', inset=3):
+    """Draws a gable-end wall (nested cavity rectangle)."""
+    sx = to_screen_x(x)
+    sy = to_screen_y(y)
+    s_len = to_screen_dim(length)
+    s_thick = to_screen_dim(thickness)
+    s_inset = to_screen_dim(inset)
+
+    if orientation == 'horizontal':
+        w, h = s_len, s_thick
+    else:
+        w, h = s_thick, s_len
+
+    go_to(sx, sy)
+    turtle.setheading(0)
+    for _ in range(2):
+        turtle.forward(w)
+        turtle.left(90)
+        turtle.forward(h)
+        turtle.left(90)
+
+    go_to(sx + s_inset, sy + s_inset)
+    for _ in range(2):
+        turtle.forward(w - 2 * s_inset)
+        turtle.left(90)
+        turtle.forward(h - 2 * s_inset)
+        turtle.left(90)
+
+
+# ==========================================
+# 4. DOOR & WINDOW DRAWING FUNCTIONS
+# ==========================================
+
+def draw_swing_door(x, y, size=60, orientation="top-right"):
+    """Draws an architectural swing door with door leaf and swing clearance arc."""
+    sx = to_screen_x(x)
+    sy = to_screen_y(y)
+    s_size = to_screen_dim(size)
+
+    # Horizontal Wall Doors
+    if orientation == "top-right":
+        go_to(sx + s_size, sy)
+        turtle.setheading(90)
+        turtle.circle(s_size, 90)
+        go_to(sx, sy)
+        turtle.setheading(90)
+        turtle.forward(s_size)
+
+    elif orientation == "top-left":
+        go_to(sx, sy + s_size)
+        turtle.setheading(180)
+        turtle.circle(s_size, 90)
+        go_to(sx, sy)
+        turtle.setheading(90)
+        turtle.forward(s_size)
+
+    elif orientation == "bottom-right":
+        go_to(sx, sy - s_size)
+        turtle.setheading(0)
+        turtle.circle(s_size, 90)
+        go_to(sx, sy)
+        turtle.setheading(270)
+        turtle.forward(s_size)
+
+    elif orientation == "bottom-left":
+        go_to(sx - s_size, sy)
+        turtle.setheading(270)
+        turtle.circle(s_size, 90)
+        go_to(sx, sy)
+        turtle.setheading(270)
+        turtle.forward(s_size)
+
+    # Vertical Wall Doors (horizontal door leaf)
+    elif orientation == "right-top":
+        go_to(sx, sy + s_size)
+        turtle.setheading(270)
+        turtle.circle(-s_size, 90)
+        go_to(sx, sy)
+        turtle.setheading(0)
+        turtle.forward(s_size)
+
+    elif orientation == "right-bottom":
+        go_to(sx, sy - s_size)
+        turtle.setheading(90)
+        turtle.circle(s_size, 90)
+        go_to(sx, sy)
+        turtle.setheading(0)
+        turtle.forward(s_size)
+
+    elif orientation == "left-top":
+        go_to(sx, sy + s_size)
+        turtle.setheading(270)
+        turtle.circle(s_size, 90)
+        go_to(sx, sy)
+        turtle.setheading(180)
+        turtle.forward(s_size)
+
+    elif orientation == "left-bottom":
+        go_to(sx, sy - s_size)
+        turtle.setheading(90)
+        turtle.circle(-s_size, 90)
+        go_to(sx, sy)
+        turtle.setheading(180)
+        turtle.forward(s_size)
+
+
+def draw_sliding_door(x, y, length=100, orientation="horizontal", gap=6):
+    """Draws a sliding door with overlapping panels and jambs."""
+    sx = to_screen_x(x)
+    sy = to_screen_y(y)
+    s_len = to_screen_dim(length)
+    s_gap = to_screen_dim(gap)
+    panel_len = s_len * 0.55
+
+    if orientation == "horizontal":
+        go_to(sx, sy + s_gap / 2)
+        turtle.setheading(0)
+        turtle.forward(panel_len)
+        go_to(sx + s_len - panel_len, sy - s_gap / 2)
+        turtle.setheading(0)
+        turtle.forward(panel_len)
+        go_to(sx, sy - s_gap)
+        turtle.setheading(90)
+        turtle.forward(2 * s_gap)
+        go_to(sx + s_len, sy - s_gap)
+        turtle.setheading(90)
+        turtle.forward(2 * s_gap)
+    else:
+        go_to(sx - s_gap / 2, sy)
+        turtle.setheading(90)
+        turtle.forward(panel_len)
+        go_to(sx + s_gap / 2, sy + s_len - panel_len)
+        turtle.setheading(90)
+        turtle.forward(panel_len)
+        go_to(sx - s_gap, sy)
+        turtle.setheading(0)
+        turtle.forward(2 * s_gap)
+        go_to(sx - s_gap, sy + s_len)
+        turtle.setheading(0)
+        turtle.forward(2 * s_gap)
+
+
+def draw_standard_window(x, y, length=120, orientation="horizontal", thickness=14):
+    """Draws a standard architectural window (frame with center glass line and jambs)."""
+    sx = to_screen_x(x)
+    sy = to_screen_y(y)
+    s_len = to_screen_dim(length)
+    s_thick = to_screen_dim(thickness)
+
+    if orientation == "horizontal":
+        go_to(sx, sy + s_thick / 2)
+        turtle.setheading(0)
+        turtle.forward(s_len)
+        go_to(sx, sy - s_thick / 2)
+        turtle.setheading(0)
+        turtle.forward(s_len)
+        go_to(sx, sy)
+        turtle.setheading(0)
+        turtle.forward(s_len)
+        go_to(sx, sy - s_thick / 2)
+        turtle.setheading(90)
+        turtle.forward(s_thick)
+        go_to(sx + s_len, sy - s_thick / 2)
+        turtle.setheading(90)
+        turtle.forward(s_thick)
+    else:
+        go_to(sx - s_thick / 2, sy)
+        turtle.setheading(90)
+        turtle.forward(s_len)
+        go_to(sx + s_thick / 2, sy)
+        turtle.setheading(90)
+        turtle.forward(s_len)
+        go_to(sx, sy)
+        turtle.setheading(90)
+        turtle.forward(s_len)
+        go_to(sx - s_thick / 2, sy)
+        turtle.setheading(0)
+        turtle.forward(s_thick)
+        go_to(sx - s_thick / 2, sy + s_len)
+        turtle.setheading(0)
+        turtle.forward(s_thick)
+
+
+def draw_sliding_window(x, y, length=120, orientation="horizontal", thickness=14):
+    """Draws a sliding window (outer frame with offset sliding sashes)."""
+    sx = to_screen_x(x)
+    sy = to_screen_y(y)
+    s_len = to_screen_dim(length)
+    s_thick = to_screen_dim(thickness)
+    panel_len = s_len * 0.55
+    offset = to_screen_dim(3)
+
+    if orientation == "horizontal":
+        go_to(sx, sy - s_thick / 2)
+        turtle.setheading(0)
+        for _ in range(2):
+            turtle.forward(s_len)
+            turtle.left(90)
+            turtle.forward(s_thick)
+            turtle.left(90)
+        go_to(sx, sy + offset)
+        turtle.setheading(0)
+        turtle.forward(panel_len)
+        go_to(sx + s_len - panel_len, sy - offset)
+        turtle.setheading(0)
+        turtle.forward(panel_len)
+    else:
+        go_to(sx - s_thick / 2, sy)
+        turtle.setheading(0)
+        for _ in range(2):
+            turtle.forward(s_thick)
+            turtle.left(90)
+            turtle.forward(s_len)
+            turtle.left(90)
+        go_to(sx - offset, sy)
+        turtle.setheading(90)
+        turtle.forward(panel_len)
+        go_to(sx + offset, sy + s_len - panel_len)
+        turtle.setheading(90)
+        turtle.forward(panel_len)
+
+
+# ==========================================
+# 5. FURNITURE FEATURES (BED & WARDROBE)
+# ==========================================
+
+def draw_rect(x, y, width, height):
+    """Helper to draw an outlined rectangle from bottom-left corner."""
+    go_to(x, y)
+    turtle.setheading(0)
+    for _ in range(2):
+        turtle.forward(width)
+        turtle.left(90)
+        turtle.forward(height)
+        turtle.left(90)
+
+
+def draw_bed(x, y, bed_type="queen", orientation="vertical"):
+    
+    #Draws an architectural bed with pillows:
+##    - Dimensions scaled down by 0.75 (75% of original baseline):
+##        Queen: 112.5 x 142.5 (originally 150 x 190)
+##        Single: 67.5 x 135.0 (originally 90 x 180)
+##    - orientation:
+##        'vertical'   : Headboard at the top (+Y), foot at bottom (-Y)
+##        'horizontal' : Headboard at the left (-X), foot at right (+X)
+    
+    
+    if bed_type.lower().startswith('s'):
+        bed_w = 90 * 0.75   # 67.5
+        bed_l = 180 * 0.75  # 135.0
+        num_pillows = 1
+        bed_label = "Single"
+    else:
+        bed_w = 150 * 0.75  # 112.5
+        bed_l = 190 * 0.75  # 142.5
+        num_pillows = 2
+        bed_label = "Queen"
+
+    sx = to_screen_x(x)
+    sy = to_screen_y(y)
+    sw = to_screen_dim(bed_w)
+    sl = to_screen_dim(bed_l)
+
+    turtle.pensize(1)
+    turtle.pencolor("#333333")
+
+    if orientation == "vertical":
+        # Mattress outline (origin is top-left of the bed)
+        draw_rect(sx, sy - sl, sw, sl)
+
+        # Headboard fold line (25% from top)
+        go_to(sx, sy - sl * 0.25)
+        turtle.setheading(0)
+        turtle.forward(sw)
+
+        # Draw Pillow(s) near headboard (top)
+        pillow_h = sl * 0.18
+        if num_pillows == 1:
+            pillow_w = sw * 0.60
+            px = sx + (sw - pillow_w) / 2
+            py = sy - sl * 0.22
+            draw_rect(px, py, pillow_w, pillow_h)
+        else:
+            pillow_w = sw * 0.40
+            gap = sw * 0.06
+            px1 = sx + gap
+            py1 = sy - sl * 0.22
+            draw_rect(px1, py1, pillow_w, pillow_h)
+
+            px2 = sx + sw - gap - pillow_w
+            draw_rect(px2, py1, pillow_w, pillow_h)
+
+    else:  # horizontal (headboard at the left)
+        draw_rect(sx, sy, sl, sw)
+
+        # Headboard fold line (25% from left)
+        go_to(sx + sl * 0.25, sy)
+        turtle.setheading(90)
+        turtle.forward(sw)
+
+        # Draw Pillow(s) near headboard (left)
+        pillow_w = sl * 0.18
+        if num_pillows == 1:
+            pillow_h = sw * 0.60
+            px = sx + sl * 0.04
+            py = sy + (sw - pillow_h) / 2
+            draw_rect(px, py, pillow_w, pillow_h)
+        else:
+            pillow_h = sw * 0.40
+            gap = sw * 0.06
+            px = sx + sl * 0.04
+            py1 = sy + gap
+            draw_rect(px, py1, pillow_w, pillow_h)
+
+            py2 = sy + sw - gap - pillow_h
+            draw_rect(px, py2, pillow_w, pillow_h)
+
+    turtle.pencolor("black")
+
+
+def draw_wardrobe(x, y, length, depth=60, orientation="horizontal"):
+  
+    #Draws an architectural wardrobe:
+
+    sx = to_screen_x(x)
+    sy = to_screen_y(y)
+    slen = to_screen_dim(length)
+    sdepth = to_screen_dim(depth)
+
+    turtle.pensize(1)
+    turtle.pencolor("#2B2B2B")
+
+    if orientation == "horizontal":
+        # Outer cabinet rectangle
+        draw_rect(sx, sy, slen, sdepth)
+        # Center divider line
+        go_to(sx + slen / 2, sy)
+        turtle.setheading(90)
+        turtle.forward(sdepth)
+        # Hanger rail across center
+        go_to(sx + slen * 0.05, sy + sdepth / 2)
+        turtle.setheading(0)
+        turtle.forward(slen * 0.90)
+    else:  # vertical
+        draw_rect(sx, sy, sdepth, slen)
+        # Center divider line
+        go_to(sx, sy + slen / 2)
+        turtle.setheading(0)
+        turtle.forward(sdepth)
+        # Hanger rail across center
+        go_to(sx + sdepth / 2, sy + slen * 0.05)
+        turtle.setheading(90)
+        turtle.forward(slen * 0.90)
+
+    turtle.pencolor("black")
+
+
+# ==========================================
+# 6. TEXT FILE PERSISTENCE (SAVE / LOAD)
+# ==========================================
+
+def save_plan_to_file(filename):
+    """Saves the current floor plan elements to a text file."""
+    try:
+        if not filename.endswith('.txt'):
+            filename = filename + '.txt'
+        with open(filename, 'w') as file:
+            file.write("# MA1008 BTO Floor Plan Data File\n")
+            file.write(f"SCALE,{PLAN_SCALE}\n")
+            for elem in PLAN_ELEMENTS:
+                line = ",".join(str(item) for item in elem)
+                file.write(line + "\n")
+        print(f"[SUCCESS] Saved {len(PLAN_ELEMENTS)} elements to {filename}")
+        return True
+    except IOError as e:
+        print(f"[ERROR] Failed to save file {filename}: {e}")
+        return False
+
+
+def load_plan_from_file(filename):
+    """Loads a floor plan from a text file and draws all elements."""
+    global PLAN_SCALE, PLAN_ELEMENTS
+
+    if not filename.endswith('.txt'):
+        filename = filename + '.txt'
+
+    try:
+        with open(filename, 'r') as file:
+            lines = file.readlines()
+    except FileNotFoundError:
+        print(f"\n[ERROR] File Not Found: '{filename}' does not exist.")
+        print("Please verify the file name and ensure it is located in the working directory.\n")
+        return False
+    except IOError as e:
+        print(f"[ERROR] Could not read file '{filename}': {e}")
+        return False
+
+    # Clean existing canvas
+    turtle.clear()
+    PLAN_ELEMENTS = []
+    render_gui()
+
+    new_scale = PLAN_SCALE
+    turtle.tracer(0)
+
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+
+        parts = [p.strip() for p in line.split(',')]
+        cmd = parts[0].upper()
+
+        try:
+            if cmd == "SCALE" and len(parts) >= 2:
+                new_scale = float(parts[1])
+                PLAN_SCALE = new_scale
+            elif cmd == "NON_STRUCTURAL_WALL" and len(parts) >= 5:
+                x, y, length, ori = float(parts[1]), float(parts[2]), float(parts[3]), parts[4]
+                draw_non_structural_wall(x, y, length, ori)
+                PLAN_ELEMENTS.append(["NON_STRUCTURAL_WALL", x, y, length, ori])
+            elif cmd == "STRUCTURAL_WALL" and len(parts) >= 5:
+                x, y, length, ori = float(parts[1]), float(parts[2]), float(parts[3]), parts[4]
+                draw_structural_wall(x, y, length, 16, ori)
+                PLAN_ELEMENTS.append(["STRUCTURAL_WALL", x, y, length, ori])
+            elif cmd == "GABLE_END_WALL" and len(parts) >= 5:
+                x, y, length, ori = float(parts[1]), float(parts[2]), float(parts[3]), parts[4]
+                draw_gable_end_wall(x, y, length, 20, ori)
+                PLAN_ELEMENTS.append(["GABLE_END_WALL", x, y, length, ori])
+            elif cmd == "SWING_DOOR" and len(parts) >= 5:
+                x, y, size, ori = float(parts[1]), float(parts[2]), float(parts[3]), parts[4]
+                draw_swing_door(x, y, size, ori)
+                PLAN_ELEMENTS.append(["SWING_DOOR", x, y, size, ori])
+            elif cmd == "SLIDING_DOOR" and len(parts) >= 5:
+                x, y, length, ori = float(parts[1]), float(parts[2]), float(parts[3]), parts[4]
+                draw_sliding_door(x, y, length, ori)
+                PLAN_ELEMENTS.append(["SLIDING_DOOR", x, y, length, ori])
+            elif cmd == "STANDARD_WINDOW" and len(parts) >= 5:
+                x, y, length, ori = float(parts[1]), float(parts[2]), float(parts[3]), parts[4]
+                draw_standard_window(x, y, length, ori)
+                PLAN_ELEMENTS.append(["STANDARD_WINDOW", x, y, length, ori])
+            elif cmd == "SLIDING_WINDOW" and len(parts) >= 5:
+                x, y, length, ori = float(parts[1]), float(parts[2]), float(parts[3]), parts[4]
+                draw_sliding_window(x, y, length, ori)
+                PLAN_ELEMENTS.append(["SLIDING_WINDOW", x, y, length, ori])
+            elif cmd == "BED" and len(parts) >= 5:
+                x, y, btype, ori = float(parts[1]), float(parts[2]), parts[3], parts[4]
+                draw_bed(x, y, btype, ori)
+                PLAN_ELEMENTS.append(["BED", x, y, btype, ori])
+            elif cmd == "WARDROBE" and len(parts) >= 6:
+                x, y, wlen, wdepth, ori = float(parts[1]), float(parts[2]), float(parts[3]), float(parts[4]), parts[5]
+                draw_wardrobe(x, y, wlen, wdepth, ori)
+                PLAN_ELEMENTS.append(["WARDROBE", x, y, wlen, wdepth, ori])
+        except (ValueError, IndexError) as err:
+            print(f"[WARNING] Skipping malformed line '{line}': {err}")
+
+    # Redraw frame with active scale
+    draw_perimeter_box()
+    turtle.tracer(1)
+    print(f"[SUCCESS] Loaded {len(PLAN_ELEMENTS)} features from '{filename}'.")
+    return True
+
+
+# ==========================================
+# 7. GUI BUTTON & TOOLBAR SYSTEM
+# ==========================================
+
+def draw_button(x, y, width, height, text, bg_color="#E0E0E0"):
+    """Draws a button box with centered text label."""
+    go_to(x, y)
+    turtle.fillcolor(bg_color)
+    turtle.pencolor("black")
+    turtle.pensize(2)
+    turtle.setheading(0)
+
+    turtle.begin_fill()
+    for _ in range(2):
+        turtle.forward(width)
+        turtle.left(90)
+        turtle.forward(height)
+        turtle.left(90)
+    turtle.end_fill()
+
+    turtle.penup()
+    turtle.goto(x + width / 2, y + (height / 2) - 6)
+    turtle.write(text, align="center", font=("Arial", 8, "bold"))
+    turtle.pensize(1)
+
+
+def is_inside_box(click_x, click_y, x, y, width, height):
+    """Checks whether a click coordinate falls within a rectangular box."""
+    return (x <= click_x <= x + width) and (y <= click_y <= y + height)
+
+
+def render_gui():
+    """Renders a 3-tier toolbar across the top of the canvas."""
+    turtle.tracer(0)
+
+    # Main Toolbar background panel
+    go_to(-490, 185)
+    turtle.fillcolor("#F8F9FA")
+    turtle.pencolor("#CCCCCC")
+    turtle.begin_fill()
+    turtle.setheading(0)
+    for _ in range(2):
+        turtle.forward(980)
+        turtle.left(90)
+        turtle.forward(175)
+        turtle.left(90)
+    turtle.end_fill()
+
+    # --- ROW 1: Walls & Actions (y = 318, height = 34) ---
+    draw_button(-475, 318, 135, 34, "Non-Structural", "#D1E7DD")
+    draw_button(-330, 318, 135, 34, "Structural Wall", "#D1E7DD")
+    draw_button(-185, 318, 135, 34, "Gable-End Wall", "#D1E7DD")
+    draw_button(50, 318, 110, 34, "Set Scale", "#FFE5D0")
+    draw_button(175, 318, 130, 34, "Clear Canvas", "#FFF3CD")
+    draw_button(320, 318, 130, 34, "Exit", "#F8D7DA")
+
+    # --- ROW 2: Doors & Windows (y = 276, height = 34) ---
+    draw_button(-475, 276, 135, 34, "Swing Door", "#CFF4FC")
+    draw_button(-330, 276, 135, 34, "Sliding Door", "#CFF4FC")
+    draw_button(-185, 276, 135, 34, "Standard Window", "#E2D9F3")
+    draw_button(-40, 276, 135, 34, "Sliding Window", "#E2D9F3")
+    draw_button(175, 276, 130, 34, "Save Plan", "#D4EDDA")
+    draw_button(320, 276, 130, 34, "Load Plan", "#D1ECF1")
+
+    # --- ROW 3: Furniture Features (y = 234, height = 34) ---
+    draw_button(-475, 234, 135, 34, "Place Bed", "#FCE2DB")
+    draw_button(-330, 234, 135, 34, "Place Wardrobe", "#FCE2DB")
+
+    turtle.pencolor("black")
+    turtle.tracer(1)
+
+
+# ==========================================
+# 8. INPUT PROMPT DIALOGS & HANDLERS
+# ==========================================
+
+def prompt_opening_inputs(title, default_len=100):
+    """Prompts for starting coordinates, length, and orientation."""
+    screen = turtle.Screen()
+    x = screen.numinput(title, "Start X (-400 to 400):", default=0, minval=-500, maxval=500)
+    if x is None:
+        return None
+    y = screen.numinput(title, "Start Y (-300 to 150):", default=0, minval=-400, maxval=200)
+    if y is None:
+        return None
+    length = screen.numinput(title, "Length (pixels):", default=default_len, minval=20, maxval=600)
+    if length is None:
+        return None
+    ori = screen.textinput(title, "Orientation ('h' for horizontal, 'v' for vertical):")
+    if ori is None or ori.lower().startswith('h'):
+        orientation = 'horizontal'
+    else:
+        orientation = 'vertical'
+    return x, y, length, orientation
+
+
+def prompt_swing_door_inputs():
+    """Prompts for swing door hinge position, size, and swing direction."""
+    screen = turtle.Screen()
+    x = screen.numinput("Swing Door", "Hinge X coordinate:", default=0, minval=-500, maxval=500)
+    if x is None:
+        return None
+    y = screen.numinput("Swing Door", "Hinge Y coordinate:", default=0, minval=-400, maxval=200)
+    if y is None:
+        return None
+    size = screen.numinput("Swing Door", "Door width (radius):", default=60, minval=20, maxval=200)
+    if size is None:
+        return None
+
+    prompt_text = (
+        "Swing Direction:\n"
+        "1: Top-Right   2: Top-Left\n"
+        "3: Bottom-Right 4: Bottom-Left\n"
+        "5: Right-Top    6: Right-Bottom\n"
+        "7: Left-Top     8: Left-Bottom"
+    )
+    choice = screen.textinput("Swing Door", prompt_text)
+    mapping = {
+        '1': 'top-right', '2': 'top-left', '3': 'bottom-right', '4': 'bottom-left',
+        '5': 'right-top', '6': 'right-bottom', '7': 'left-top', '8': 'left-bottom'
+    }
+    orientation = mapping.get(choice, 'top-right')
+    return x, y, size, orientation
+
+
+def prompt_bed_inputs():
+    """Prompts for Bed type, position, and orientation."""
+    screen = turtle.Screen()
+    choice = screen.textinput("Place Bed", "Select Bed Size:\n1: Queen Bed (2 pillows)\n2: Single Bed (1 pillow)")
+    if choice is None:
+        return None
+    bed_type = "single" if choice.strip() == '2' else "queen"
+
+    x = screen.numinput("Place Bed", "Position X (-400 to 400):", default=0, minval=-500, maxval=500)
+    if x is None:
+        return None
+    y = screen.numinput("Place Bed", "Position Y (-300 to 150):", default=0, minval=-400, maxval=200)
+    if y is None:
+        return None
+
+    ori_input = screen.textinput("Place Bed", "Orientation ('v' for vertical, 'h' for horizontal):")
+    orientation = "horizontal" if (ori_input and ori_input.lower().startswith('h')) else "vertical"
+
+    return x, y, bed_type, orientation
+
+
+def prompt_wardrobe_inputs():
+    """Prompts for custom Wardrobe dimensions and position."""
+    screen = turtle.Screen()
+    x = screen.numinput("Place Wardrobe", "Start X (-400 to 400):", default=0, minval=-500, maxval=500)
+    if x is None:
+        return None
+    y = screen.numinput("Place Wardrobe", "Start Y (-300 to 150):", default=0, minval=-400, maxval=200)
+    if y is None:
+        return None
+
+    length = screen.numinput("Place Wardrobe", "Wardrobe Length (e.g. 120-200):", default=140, minval=40, maxval=400)
+    if length is None:
+        return None
+    depth = screen.numinput("Place Wardrobe", "Wardrobe Depth (standard 50-60):", default=60, minval=30, maxval=120)
+    if depth is None:
+        return None
+
+    ori_input = screen.textinput("Place Wardrobe", "Orientation ('h' for horizontal, 'v' for vertical):")
+    orientation = "vertical" if (ori_input and ori_input.lower().startswith('v')) else "horizontal"
+
+    return x, y, length, depth, orientation
+
+
+# Button Handlers
+def handle_non_structural():
+    data = prompt_opening_inputs("Non-Structural Wall", default_len=150)
+    if data:
+        x, y, length, orientation = data
+        draw_non_structural_wall(x, y, length, orientation)
+        PLAN_ELEMENTS.append(["NON_STRUCTURAL_WALL", x, y, length, orientation])
+
+
+def handle_structural():
+    data = prompt_opening_inputs("Structural Wall", default_len=150)
+    if data:
+        x, y, length, orientation = data
+        draw_structural_wall(x, y, length, 16, orientation)
+        PLAN_ELEMENTS.append(["STRUCTURAL_WALL", x, y, length, orientation])
+
+
+def handle_gable():
+    data = prompt_opening_inputs("Gable-End Wall", default_len=150)
+    if data:
+        x, y, length, orientation = data
+        draw_gable_end_wall(x, y, length, 20, orientation)
+        PLAN_ELEMENTS.append(["GABLE_END_WALL", x, y, length, orientation])
+
+
+def handle_swing_door():
+    data = prompt_swing_door_inputs()
+    if data:
+        x, y, size, orientation = data
+        draw_swing_door(x, y, size, orientation)
+        PLAN_ELEMENTS.append(["SWING_DOOR", x, y, size, orientation])
+
+
+def handle_sliding_door():
+    data = prompt_opening_inputs("Sliding Door", default_len=100)
+    if data:
+        x, y, length, orientation = data
+        draw_sliding_door(x, y, length, orientation)
+        PLAN_ELEMENTS.append(["SLIDING_DOOR", x, y, length, orientation])
+
+
+def handle_standard_window():
+    data = prompt_opening_inputs("Standard Window", default_len=120)
+    if data:
+        x, y, length, orientation = data
+        draw_standard_window(x, y, length, orientation)
+        PLAN_ELEMENTS.append(["STANDARD_WINDOW", x, y, length, orientation])
+
+
+def handle_sliding_window():
+    data = prompt_opening_inputs("Sliding Window", default_len=120)
+    if data:
+        x, y, length, orientation = data
+        draw_sliding_window(x, y, length, orientation)
+        PLAN_ELEMENTS.append(["SLIDING_WINDOW", x, y, length, orientation])
+
+
+def handle_bed():
+    data = prompt_bed_inputs()
+    if data:
+        x, y, bed_type, orientation = data
+        draw_bed(x, y, bed_type, orientation)
+        PLAN_ELEMENTS.append(["BED", x, y, bed_type, orientation])
+
+
+def handle_wardrobe():
+    data = prompt_wardrobe_inputs()
+    if data:
+        x, y, length, depth, orientation = data
+        draw_wardrobe(x, y, length, depth, orientation)
+        PLAN_ELEMENTS.append(["WARDROBE", x, y, length, depth, orientation])
+
+
+def handle_set_scale():
+    global PLAN_SCALE
+    screen = turtle.Screen()
+    val = screen.numinput("Scale Setting", "Enter scale factor (e.g., 0.5, 0.8, 1.0):",
+                          default=PLAN_SCALE, minval=0.1, maxval=3.0)
+    if val is not None and val > 0:
+        PLAN_SCALE = val
+        turtle.clear()
+        render_gui()
+        render_canvas_frame()
+        # Redraw all elements with the new scale
+        turtle.tracer(0)
+        for elem in PLAN_ELEMENTS:
+            cmd = elem[0]
+            if cmd == "NON_STRUCTURAL_WALL":
+                draw_non_structural_wall(elem[1], elem[2], elem[3], elem[4])
+            elif cmd == "STRUCTURAL_WALL":
+                draw_structural_wall(elem[1], elem[2], elem[3], 16, elem[4])
+            elif cmd == "GABLE_END_WALL":
+                draw_gable_end_wall(elem[1], elem[2], elem[3], 20, elem[4])
+            elif cmd == "SWING_DOOR":
+                draw_swing_door(elem[1], elem[2], elem[3], elem[4])
+            elif cmd == "SLIDING_DOOR":
+                draw_sliding_door(elem[1], elem[2], elem[3], elem[4])
+            elif cmd == "STANDARD_WINDOW":
+                draw_standard_window(elem[1], elem[2], elem[3], elem[4])
+            elif cmd == "SLIDING_WINDOW":
+                draw_sliding_window(elem[1], elem[2], elem[3], elem[4])
+            elif cmd == "BED":
+                draw_bed(elem[1], elem[2], elem[3], elem[4])
+            elif cmd == "WARDROBE":
+                draw_wardrobe(elem[1], elem[2], elem[3], elem[4], elem[5])
+        turtle.tracer(1)
+
+
+def handle_save_plan():
+    screen = turtle.Screen()
+    filename = screen.textinput("Save Floor Plan", "Enter filename (e.g., my_floor_plan):")
+    if filename:
+        save_plan_to_file(filename.strip())
+
+
+def handle_load_plan():
+    screen = turtle.Screen()
+    filename = screen.textinput("Load Floor Plan", "Enter filename to load (e.g., plan_2room.txt):")
+    if filename:
+        load_plan_from_file(filename.strip())
+
+
+def handle_clear():
+    global PLAN_ELEMENTS
+    PLAN_ELEMENTS = []
+    turtle.clear()
+    render_gui()
+    render_canvas_frame()
+
+
+def handle_exit():
+    turtle.bye()
+
+
+# ==========================================
+# 9. CLICK EVENT DISPATCHER
+# ==========================================
+
+def on_canvas_click(click_x, click_y):
+    """Dispatches mouse click coordinates to individual button actions."""
+    # Row 1: Walls, Scale, Clear, Exit (y: 318 to 352)
+    if is_inside_box(click_x, click_y, -475, 318, 135, 34):
+        handle_non_structural()
+    elif is_inside_box(click_x, click_y, -330, 318, 135, 34):
+        handle_structural()
+    elif is_inside_box(click_x, click_y, -185, 318, 135, 34):
+        handle_gable()
+    elif is_inside_box(click_x, click_y, 50, 318, 110, 34):
+        handle_set_scale()
+    elif is_inside_box(click_x, click_y, 175, 318, 130, 34):
+        handle_clear()
+    elif is_inside_box(click_x, click_y, 320, 318, 130, 34):
+        handle_exit()
+
+    # Row 2: Doors, Windows, Save, Load (y: 276 to 310)
+    elif is_inside_box(click_x, click_y, -475, 276, 135, 34):
+        handle_swing_door()
+    elif is_inside_box(click_x, click_y, -330, 276, 135, 34):
+        handle_sliding_door()
+    elif is_inside_box(click_x, click_y, -185, 276, 135, 34):
+        handle_standard_window()
+    elif is_inside_box(click_x, click_y, -40, 276, 135, 34):
+        handle_sliding_window()
+    elif is_inside_box(click_x, click_y, 175, 276, 130, 34):
+        handle_save_plan()
+    elif is_inside_box(click_x, click_y, 320, 276, 130, 34):
+        handle_load_plan()
+
+    # Row 3: Furniture Features (y: 234 to 268)
+    elif is_inside_box(click_x, click_y, -475, 234, 135, 34):
+        handle_bed()
+    elif is_inside_box(click_x, click_y, -330, 234, 135, 34):
+        handle_wardrobe()
+
+
+# ==========================================
+# 10. MAIN PROGRAM ENTRY
+# ==========================================
+
+def main():
+    turtle.setup(1020, 780)
+    turtle.title("HDB Floor Plan Designer - Walls, Openings & Furniture")
+    turtle.speed(0)
+    turtle.hideturtle()
+
+    render_gui()
+    render_canvas_frame()
+
+    screen = turtle.Screen()
+    screen.onscreenclick(on_canvas_click)
+
+    turtle.done()
+
+
+if __name__ == "__main__":
+    main()
